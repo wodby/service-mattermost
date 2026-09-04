@@ -1,0 +1,217 @@
+name: mattermost
+icon: mattermost
+type: service
+title: Mattermost
+
+options:
+- version: '11.7'
+  tag: '11.7.10'
+  default: true
+  eol: '2027-05-15T00:00:00+00:00'
+
+labels:
+- mattermost
+
+deployment:
+  strategy: rolling
+  shutdownGracePeriod: 60s
+
+endpoints:
+- name: mattermost
+  ports:
+  - name: http
+    number: 8065
+    protocol: http
+    main: true
+    routeDefaults:
+      https_redirect: 'true'
+      request_body_size: 128Mi
+      request_timeout: 0s
+      backend_request_timeout: 0s
+
+links:
+- name: postgres
+  title: PostgreSQL
+  required: true
+  selectors:
+  - type: db
+    labels:
+    - postgres
+  env:
+  - name: MM_SQLSETTINGS_DRIVERNAME
+    value: postgres
+  - name: MM_SQLSETTINGS_DATASOURCE
+    value: '{{link.database.url}}?connect_timeout=10'
+    secret: true
+- name: sendmail
+  title: SMTP server
+  selectors:
+  - type: service
+    labels:
+    - smtpd
+  env:
+  - name: MM_EMAILSETTINGS_SMTPSERVER
+    value: '{{link.host}}'
+  - name: MM_EMAILSETTINGS_SMTPPORT
+    value: '{{link.port}}'
+  - name: MM_EMAILSETTINGS_ENABLESMTPAUTH
+    value: 'false'
+  - name: MM_EMAILSETTINGS_CONNECTIONSECURITY
+    value: ''
+
+env:
+- name: MM_CONFIG
+  value: /mattermost/config/config.json
+- name: MM_SERVICESETTINGS_SITEURL
+  value: '{{service.primaryURL}}'
+- name: MM_FILESETTINGS_MAXFILESIZE
+  value: '104857600'
+- name: MM_LOGSETTINGS_ENABLECONSOLE
+  value: 'true'
+- name: MM_LOGSETTINGS_CONSOLEJSON
+  value: 'true'
+- name: MM_LOGSETTINGS_CONSOLELEVEL
+  value: INFO
+- name: MM_LOGSETTINGS_ENABLEFILE
+  value: 'false'
+
+volumes:
+- name: data
+  title: Mattermost data
+  size: 20
+  helm:
+    labels: persistence.labels
+    values:
+    - name: persistence.enabled
+      value: true
+    - name: persistence.size
+      value: '{{volumes.data.size}}Gi'
+    - name: persistence.storageClass
+      value: '{{volumes.data.storageClassName}}'
+
+helm:
+  name: wodby
+  source: oci://registry-1.docker.io/wodby/stateful
+  chart: oci://registry-1.docker.io/wodby/stateful
+  version: 0.2.0
+  valueMappings:
+    replicas: replicaCount
+    serviceAccountName: serviceAccount.name
+    serviceAccountCreate: serviceAccount.create
+  values:
+  - name: containerName
+    value: mattermost
+  - name: containerPorts
+    value:
+    - name: http
+      containerPort: 8065
+      protocol: TCP
+  - name: podSecurityContext
+    value:
+      fsGroup: 2000
+      fsGroupChangePolicy: OnRootMismatch
+  - name: securityContext
+    value:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsGroup: 2000
+      runAsNonRoot: true
+      runAsUser: 2000
+  - name: persistence.mountPath
+    value: /mattermost/data
+  - name: persistence.subPath
+    value: data
+  - name: extraVolumeMounts
+    value:
+    - name: data
+      mountPath: /mattermost/config
+      subPath: config
+    - name: data
+      mountPath: /mattermost/plugins
+      subPath: plugins
+    - name: data
+      mountPath: /mattermost/client/plugins
+      subPath: client-plugins
+  - name: initContainers
+    value:
+    - name: prepare-mattermost-data
+      image: busybox:1.37.0
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        readOnlyRootFilesystem: true
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+      command:
+      - /bin/sh
+      - -ec
+      args:
+      - |
+        mkdir -p /persistence/data /persistence/config /persistence/plugins /persistence/client-plugins
+        if [ ! -f /persistence/config/config.json ]; then
+          printf '%s\n' '{"PluginSettings":{"PluginStates":{"com.mattermost.calls":{"Enable":false},"com.mattermost.nps":{"Enable":true},"mattermost-ai":{"Enable":true},"playbooks":{"Enable":true}}}}' > /persistence/config/config.json
+        fi
+      volumeMounts:
+      - name: data
+        mountPath: /persistence
+  - name: startupProbe
+    value:
+      httpGet:
+        path: /api/v4/system/ping
+        port: http
+      failureThreshold: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+  - name: readinessProbe
+    value:
+      httpGet:
+        path: /api/v4/system/ping
+        port: http
+      failureThreshold: 6
+      periodSeconds: 10
+      timeoutSeconds: 5
+  - name: livenessProbe
+    value:
+      httpGet:
+        path: /api/v4/system/ping
+        port: http
+      failureThreshold: 6
+      periodSeconds: 10
+      timeoutSeconds: 5
+
+workloads:
+- name: main
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: '{{helm.release}}'
+  kind: statefulset
+  primary: true
+  helm:
+    labels: commonLabels
+    annotations: commonAnnotations
+    volumes: extraVolumes
+  containers:
+  - name: mattermost
+    image: mattermost/mattermost-team-edition
+    resources:
+      request:
+        cpu: 1000
+        memory: 2048
+      limit:
+        cpu: 2000
+        memory: 4096
+    helm:
+      resources: resources
+      env: envVars
+      mounts: extraVolumeMounts
+      image:
+        repository: image.repository
+        tag: image.tag
+        registry: image.registry
+        pullPolicy: image.pullPolicy
