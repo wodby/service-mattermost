@@ -1,13 +1,17 @@
 # Mattermost service for Kubernetes on Wodby
 
-Run Mattermost Team Edition on Kubernetes with Wodby.
+Run Mattermost as a reusable Kubernetes application service with Wodby.
 
-This repository defines the reusable Mattermost service manifest. It uses the
-official Mattermost Team Edition image and Wodby's generic stateful Helm chart.
+This repository defines the Wodby service manifests and operational
+configuration for Mattermost.
 
 - [Browse Wodby services](https://wodby.com/services)
 - [Wodby service documentation](https://wodby.com/docs/2.0/services/)
 - [Service manifest reference](https://wodby.com/docs/2.0/services/template/)
+
+## Wodby stacks using this service
+
+- [Mattermost application stack](https://github.com/wodby/stack-mattermost)
 
 ## Service overview
 
@@ -15,6 +19,7 @@ official Mattermost Team Edition image and Wodby's generic stateful Helm chart.
 | --- | --- |
 | Service name | `mattermost` |
 | Type | Application service |
+| Edition | Team Edition (free and open source) |
 | Versions | Mattermost `11.7` ESR |
 | Database | Required PostgreSQL link |
 | HTTP endpoint | Port `8065`; HTTPS redirect; WebSocket-safe route timeouts |
@@ -25,6 +30,15 @@ official Mattermost Team Edition image and Wodby's generic stateful Helm chart.
 
 The official image is currently published for `linux/amd64`. The service must
 therefore be scheduled on an x86-64 Kubernetes node.
+
+## Use this service
+
+Use this service through [Mattermost application stack](https://github.com/wodby/stack-mattermost), or reference `mattermost` from a
+custom Wodby stack.
+
+A service is a reusable component and does not deploy by itself. The stack
+defines its links, settings, versions, resources, and relationship to the rest
+of the application.
 
 ## Storage and backups
 
@@ -43,30 +57,21 @@ Mattermost's file-size limit is set to 100 MB and the Wodby route accepts
 requests up to 128 MiB. If the application limit is increased, update the
 effective Wodby route `request_body_size` setting as well.
 
-## Use this service
-
-Use this service through the [Mattermost application stack](https://github.com/wodby/stack-mattermost),
-or reference `mattermost` from a custom Wodby stack. The stack must provide a
-compatible PostgreSQL service through the required `postgres` link.
-
-A service is a reusable component and does not deploy by itself. The stack
-defines its links and relationship to the rest of the application.
-
 ## Maintain a custom version
 
 1. Fork this repository.
-2. Edit `service.yml`.
+2. Edit the service manifest and referenced files.
 3. Import the repository as a [Git-backed service](https://wodby.com/docs/2.0/services/create/#create-a-git-backed-service).
 4. Reference the service from a stack manifest.
 
-Keep service, workload, container, endpoint, link, and volume names stable
-unless dependent stacks and app-level overrides are updated at the same time.
+Keep service, workload, container, endpoint, link, volume, config, and
+derivative names stable unless dependent stacks and app-level overrides are
+updated at the same time.
 
-Validate the manifest with:
+Validate the manifests with:
 
 ```bash
 wodby service validate-manifest service.yml --org <org-id>
 ```
 
-See the [service manifest reference](https://wodby.com/docs/2.0/services/template/)
-and the [managed services index](https://github.com/wodby/services).
+See the [service manifest reference](https://wodby.com/docs/2.0/services/template/) and the [managed services index](https://github.com/wodby/services).
