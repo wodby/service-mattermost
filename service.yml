@@ -2,6 +2,7 @@ name: mattermost
 icon: mattermost
 type: service
 title: Mattermost
+guidance: GUIDANCE.md
 
 options:
 - version: '11.7'
