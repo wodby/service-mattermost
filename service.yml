@@ -6,7 +6,7 @@ guidance: GUIDANCE.md
 
 options:
 - version: '11.7'
-  tag: '11.7.11'
+  tag: '11.7.12'
   default: true
   eol: '2027-05-15T00:00:00+00:00'
 
@@ -140,7 +140,7 @@ helm:
   - name: initContainers
     value:
     - name: prepare-mattermost-data
-      image: busybox:1.37.0
+      image: busybox:1.38.0
       imagePullPolicy: IfNotPresent
       securityContext:
         allowPrivilegeEscalation: false
