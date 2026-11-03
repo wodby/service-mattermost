@@ -53,9 +53,11 @@ does not expose ordinary horizontal scaling.
 
 ## Upload limits
 
-Mattermost's file-size limit is set to 100 MB and the Wodby route accepts
-requests up to 128 MiB. If the application limit is increased, update the
-effective Wodby route `request_body_size` setting as well.
+Mattermost's file-size limit is set to 100 MB. The Wodby route passes uploads
+through to Mattermost without its own size limit, so raising Mattermost's limit
+needs no route change. Do not set the route's `request_body_size`: it makes the
+route hold each request in memory until it is complete, which also breaks
+Mattermost's WebSocket connection.
 
 ## Maintain a custom version
 

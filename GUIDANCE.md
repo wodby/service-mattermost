@@ -14,7 +14,7 @@ Mail goes to the linked mail service without authentication or connection securi
 ## What the manifest sets
 
 - `MM_SERVICESETTINGS_SITEURL` is the environment's primary URL.
-- `MM_FILESETTINGS_MAXFILESIZE`; the route allows request bodies up to 128 MiB and has no request timeout.
+- `MM_FILESETTINGS_MAXFILESIZE` (100 MB) is the only upload limit; the route passes request bodies through without a size limit and has no request timeout. Setting the route's `request_body_size` would buffer every request in the gateway and break the WebSocket connection.
 - Logs go to the console as JSON (`MM_LOGSETTINGS_*`); file logging is off.
 - `MM_CONFIG` points to `/mattermost/config/config.json`. Before the first start an init container creates that file with initial plugin states, only when it does not exist.
 - The container runs as user and group 2000 and listens on port 8065. The health endpoint is `/api/v4/system/ping`.
