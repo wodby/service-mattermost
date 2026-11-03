@@ -26,7 +26,6 @@ endpoints:
     main: true
     routeDefaults:
       https_redirect: 'true'
-      request_body_size: 128Mi
       request_timeout: 0s
       backend_request_timeout: 0s
 
