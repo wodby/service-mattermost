@@ -204,7 +204,7 @@ workloads:
     resources:
       request:
         cpu: 10
-        memory: 176
+        memory: 192
       limit:
         cpu: 2000
         memory: 4096
