@@ -203,8 +203,8 @@ workloads:
     image: mattermost/mattermost-team-edition
     resources:
       request:
-        cpu: 1000
-        memory: 2048
+        cpu: 10
+        memory: 192
       limit:
         cpu: 2000
         memory: 4096
